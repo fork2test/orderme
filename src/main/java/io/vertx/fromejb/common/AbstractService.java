@@ -94,7 +94,14 @@ public abstract class AbstractService<T> extends AbstractVerticle implements RsS
    {
       logger.info("@POST");
       T t = getObj(routingContext);
-      getRepository().persist(t);
+      getRepository().persist(t, result -> {
+         if (result.failed())
+         {
+            routingContext.fail(result.cause());
+            return;
+         }
+         routingContext.response().end(result.result().toString());
+      });
    }
 
    //   @GET
@@ -104,7 +111,14 @@ public abstract class AbstractService<T> extends AbstractVerticle implements RsS
    {
       logger.info("@GET");
       String id = routingContext.get("id");
-      getRepository().find(id);
+      getRepository().find(id, result -> {
+         if (result.failed())
+         {
+            routingContext.fail(result.cause());
+            return;
+         }
+         routingContext.response().end(result.result().toString());
+      });
    }
 
    //   @PUT
@@ -115,7 +129,14 @@ public abstract class AbstractService<T> extends AbstractVerticle implements RsS
    {
       logger.info("@PUT");
       T t = getObj(routingContext);
-      getRepository().update(t);
+      getRepository().update(t, result -> {
+         if (result.failed())
+         {
+            routingContext.fail(result.cause());
+            return;
+         }
+         routingContext.response().end(result.result().toString());
+      });
    }
 
    //   @DELETE
@@ -125,17 +146,32 @@ public abstract class AbstractService<T> extends AbstractVerticle implements RsS
    {
       logger.info("@DELETE");
       String id = routingContext.get("id");
-      getRepository().delete(id);
+      getRepository().delete(id, result -> {
+         if (result.failed())
+         {
+            routingContext.fail(result.cause());
+            return;
+         }
+         routingContext.response().end(result.result().toString());
+      });
    }
 
    //   @GET
    //   @Path("/{id}/exist")
    //   @PathParam("id") String id
+
    public void exist(RoutingContext routingContext)
    {
       logger.info("@GET EXIST");
       String id = routingContext.get("id");
-      getRepository().exist(id);
+      getRepository().exist(id, result -> {
+         if (result.failed())
+         {
+            routingContext.fail(result.cause());
+            return;
+         }
+         routingContext.response().end(result.result().toString());
+      });
    }
 
    //   @GET
@@ -152,7 +188,9 @@ public abstract class AbstractService<T> extends AbstractVerticle implements RsS
       JsonObject search = routingContext.getBodyAsJson();
       getRepository().getList(search,
                Integer.valueOf(startRow != null ? startRow : "0"),
-               Integer.valueOf(pageSize != null ? pageSize : "0"));
+               Integer.valueOf(pageSize != null ? pageSize : "0"), result -> {
+
+               });
    }
 
    //   @OPTIONS
@@ -166,6 +204,7 @@ public abstract class AbstractService<T> extends AbstractVerticle implements RsS
    public void allOptions(RoutingContext routingContext)
    {
       logger.info("@OPTIONS ALL");
+      routingContext.response().end("");
    }
 
 }
