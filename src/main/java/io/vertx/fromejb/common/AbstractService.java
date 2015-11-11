@@ -5,6 +5,7 @@ import io.vertx.core.Future;
 import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
+import io.vertx.ext.sql.SQLConnection;
 import io.vertx.ext.web.Router;
 import io.vertx.ext.web.RoutingContext;
 
@@ -93,8 +94,9 @@ public abstract class AbstractService<T> extends AbstractVerticle implements RsS
    public void persist(RoutingContext routingContext)
    {
       logger.info("@POST");
+      SQLConnection sqlConnection = routingContext.get("conn");
       T t = getObj(routingContext);
-      getRepository().persist(t, result -> {
+      getRepository().persist(sqlConnection, t, result -> {
          if (result.failed())
          {
             routingContext.fail(result.cause());
@@ -110,8 +112,9 @@ public abstract class AbstractService<T> extends AbstractVerticle implements RsS
    public void fetch(RoutingContext routingContext)
    {
       logger.info("@GET");
+      SQLConnection sqlConnection = routingContext.get("conn");
       String id = routingContext.get("id");
-      getRepository().find(id, result -> {
+      getRepository().find(sqlConnection, id, result -> {
          if (result.failed())
          {
             routingContext.fail(result.cause());
@@ -128,8 +131,9 @@ public abstract class AbstractService<T> extends AbstractVerticle implements RsS
    public void update(RoutingContext routingContext)
    {
       logger.info("@PUT");
+      SQLConnection sqlConnection = routingContext.get("conn");
       T t = getObj(routingContext);
-      getRepository().update(t, result -> {
+      getRepository().update(sqlConnection, t, result -> {
          if (result.failed())
          {
             routingContext.fail(result.cause());
@@ -145,8 +149,9 @@ public abstract class AbstractService<T> extends AbstractVerticle implements RsS
    public void delete(RoutingContext routingContext)
    {
       logger.info("@DELETE");
+      SQLConnection sqlConnection = routingContext.get("conn");
       String id = routingContext.get("id");
-      getRepository().delete(id, result -> {
+      getRepository().delete(sqlConnection, id, result -> {
          if (result.failed())
          {
             routingContext.fail(result.cause());
@@ -163,8 +168,9 @@ public abstract class AbstractService<T> extends AbstractVerticle implements RsS
    public void exist(RoutingContext routingContext)
    {
       logger.info("@GET EXIST");
+      SQLConnection sqlConnection = routingContext.get("conn");
       String id = routingContext.get("id");
-      getRepository().exist(id, result -> {
+      getRepository().exist(sqlConnection, id, result -> {
          if (result.failed())
          {
             routingContext.fail(result.cause());
@@ -182,11 +188,12 @@ public abstract class AbstractService<T> extends AbstractVerticle implements RsS
    public void getList(RoutingContext routingContext)
    {
       logger.info("@GET LIST");
+      SQLConnection sqlConnection = routingContext.get("conn");
       String startRow = routingContext.get("startRow");
       String pageSize = routingContext.get("pageSize");
       String orderBy = routingContext.get("orderBy");
       JsonObject search = routingContext.getBodyAsJson();
-      getRepository().getList(search,
+      getRepository().getList(sqlConnection, search,
                Integer.valueOf(startRow != null ? startRow : "0"),
                Integer.valueOf(pageSize != null ? pageSize : "0"), result -> {
 

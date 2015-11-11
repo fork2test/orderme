@@ -6,7 +6,10 @@ import io.vertx.core.json.JsonObject;
 import io.vertx.core.logging.Logger;
 import io.vertx.core.logging.LoggerFactory;
 import io.vertx.ext.jdbc.JDBCClient;
+import io.vertx.ext.sql.SQLConnection;
 import io.vertx.ext.web.Router;
+import io.vertx.ext.web.handler.BodyHandler;
+import io.vertx.fromejb.management.AppConstants;
 import io.vertx.fromejb.service.OrderService;
 import io.vertx.fromejb.service.PizzaService;
 
@@ -53,12 +56,45 @@ public class Starter extends AbstractVerticle
       logger.info("url: " + url + ", user:" + username + ", " + password);
       try
       {
-         JDBCClient client = JDBCClient.createShared(vertx, new JsonObject()
+         JDBCClient jdbcClient = JDBCClient.createShared(vertx, new JsonObject()
                   .put("url", url)
                   .put("driver_class", "com.mysql.jdbc.Driver")
                   .put("user", username)
                   .put("password", password));
-         getVertx().getOrCreateContext().put("JDBCClient", client);
+         Router router = Router.router(vertx);
+
+         router.route().handler(BodyHandler.create());
+
+         // in order to minimize the nesting of call backs we can put the JDBC connection on the context for all routes
+         // that match /products
+         // this should really be encapsulated in a reusable JDBC handler that uses can just add to their app
+         router.route(AppConstants.APP_NAME + "*").handler(routingContext -> jdbcClient.getConnection(res -> {
+            if (res.failed())
+            {
+               routingContext.fail(res.cause());
+            }
+            else
+            {
+               SQLConnection sqlConnection = res.result();
+
+               // save the connection on the context
+               routingContext.put("sqlConnection", sqlConnection);
+
+               // we need to return the connection back to the jdbc pool. In order to do that we need to close it, to keep
+               // the remaining code readable one can add a headers end handler to close the connection.
+               routingContext.addHeadersEndHandler(done -> sqlConnection.close(v -> {
+               }));
+
+               routingContext.next();
+            }
+         })).failureHandler(routingContext -> {
+            SQLConnection conn = routingContext.get("conn");
+            if (conn != null)
+            {
+               conn.close(v -> {
+               });
+            }
+         });
       }
       catch (Throwable e)
       {
